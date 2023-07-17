@@ -74,6 +74,7 @@ background_styles = """
 def main():
     # Apply CSS styles
     st.markdown(background_styles, unsafe_allow_html=True)
+    st.markdown('<div style="position: absolute; top: 10px; right: 10px;">Creatd by- Akash Patil</div>', unsafe_allow_html=True)
 
     st.title("Stroke Prediction")
 
