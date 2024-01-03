@@ -25,7 +25,8 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
 
     # Date selection
-    selected_date = st.date_input("Select a date", min_value=df['date'].min(), max_value=df['date'].max(), value=datetime.today())
+    min_date = df['date'].min() if not df.empty else datetime.today()  # Use minimum date in the DataFrame or today's date
+    selected_date = st.date_input("Select a date", min_value=min_date, max_value=df['date'].max() if not df.empty else datetime.today(), value=datetime.today())
 
     # Button to trigger extraction
     if st.button("Extract Symbols"):
