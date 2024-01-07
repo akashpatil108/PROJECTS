@@ -1,38 +1,54 @@
 import streamlit as st
-from datetime import datetime
 import pandas as pd
+from datetime import datetime, timedelta
 
-def extract_symbols(df, output_file, selected_date):
-    selected_df = df[df['date'] == selected_date]
-    
-    def condition(row):
-        return len(df[(df['date'] >= row['date'] - pd.DateOffset(30)) & (df['date'] < row['date']) & (df['symbol'] == row['symbol'])]) == 0
+st.sidebar.header("User Input")
 
-    selected_df['keep'] = selected_df.apply(condition, axis=1)
-    result_df = selected_df[selected_df['keep']]
+# File uploader
+uploaded_file = st.sidebar.file_uploader("Choose a CSV file", type="csv")
 
-    result_df[['symbol', 'marketcapname', 'sector']].to_csv(output_file, index=False)
+# End date selection
+e_date = st.sidebar.date_input("Select End Date")
+end_date = pd.to_datetime(e_date)
 
-    return result_df
+# Period selection
+period = st.sidebar.number_input("Select Period (in days)", min_value=1, value=30)
 
-st.title("Symbol Extractor")
 
-# File upload
-uploaded_file = st.file_uploader("Upload a CSV or Excel file", type=["csv", "xlsx"])
 
-if uploaded_file is not None:
-    # Read the uploaded file
-    df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
+# Confirmation button
+confirmation_button = st.sidebar.button("Confirm Selection")
 
-    # Date selection
-    min_date = df['date'].min() if not df.empty else datetime.today()  # Use minimum date in the DataFrame or today's date
-    selected_date = st.date_input("Select a date", min_value=min_date, max_value=df['date'].max() if not df.empty else datetime.today(), value=datetime.today())
+if confirmation_button:
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
 
-    # Button to trigger extraction
-    if st.button("Extract Symbols"):
-        # Run the extraction script with the uploaded DataFrame
-        extracted_symbols = extract_symbols(df, 'output_symbols.csv', str(selected_date))
-        st.success("Symbols extracted successfully!")
+        # Convert date column to datetime
+        df["date"] = pd.to_datetime(df["date"])
 
-        # Display the table of extracted symbols
-        st.table(extracted_symbols[['symbol', 'marketcapname', 'sector']])
+        # Calculate start date based on period
+        start_date = end_date - timedelta(days=period)
+
+        # Filter data based on date range
+        filtered_df = df[df["date"] >= start_date]
+
+        # Perform additional calculations (as in your original code)
+        value_count = filtered_df['symbol'].value_counts()
+        count_values = value_count.to_dict()
+        filtered_df['count'] = filtered_df['symbol'].map(count_values)
+
+        # Display filtered data
+        st.dataframe(filtered_df)
+        # Assuming 'date' column is in datetime format
+        filtered_df['date'] = pd.to_datetime(filtered_df['date'])
+        # Filter date selection
+        filter_date =filtered_df['date'].max()
+
+        # Apply the filter based on user-selected end date and count
+        filtered_df = filtered_df[(filtered_df["count"] == 1) & (filtered_df["date"] == filter_date)]
+
+        # Display the filtered DataFrame
+        if not filtered_df.empty:
+            st.dataframe(filtered_df)
+        else:
+            st.warning("No data found for the selected criteria.")
